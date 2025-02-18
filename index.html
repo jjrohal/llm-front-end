@@ -1,120 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="description" content="A conversational ChatGPT that listens, learns, and challenges">
-        <meta property="og:title" content="ChatGPT light">
-        <meta property="og:image" content="https://openai.com/content/images/2022/11/ChatGPT.jpg">
-        <meta property="og:description" content="A conversational ChatGPT that listens, learns, and challenges">
-        <meta property="og:url" content="https://github.com/alexsky177/chatgpt">
-        <link rel="stylesheet" href="assets/css/style.css">
-	<link rel="stylesheet" href="assets/css/googlecode.min.css">
-        <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
-        <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32x32.png">
-        <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16x16.png">
-        <link rel="manifest" href="assets/img/site.webmanifest">
-        <script src="assets/js/icons.js"></script>
-	<script src="config.js" defer></script>
-        <script src="assets/js/chat.js" defer></script>
-	<script src="https://cdn.jsdelivr.net/npm/markdown-it@latest/dist/markdown-it.min.js"></script>
-        <script>const user_image = `<img src="assets/img/user.png" alt="User Avatar">`;
-                const gpt_image = `<img src="assets/img/gpt.png" alt="GPT Avatar">`;</script>
-		<script src="assets/js/highlight.min.js"></script>
-        <script src="assets/js/highlightjs-copy.min.js"></script>
-        <script>window.conversation_id = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(n => n.toString(24).padStart(4, '0')).join('-');</script>
-        <title>ChatGPT</title>
-    </head>
-    <body>
-        <div class="gradient"></div>
-        <div class="row">
-            <div class="box conversations">
-                <div class="top">
-                    <button class="new_convo" onclick="new_conversation()">
-                        <i class="fa-regular fa-plus"></i>
-                        <span>New chat</span>
-                    </button>
-                    <div class="spinner"></div>
-                </div>
-                <div class="bottom_buttons">
-                    <button onclick="delete_conversations()">
-                        <i class="fa-regular fa-trash"></i>
-                        <span>Clean chat</span>
-                    </button>
-                    <div class="info">
-                        <i class="fa-regular fa-circle-info"></i>
-                        <span class="convo-title">By: @<a href="https://github.com/alexsky177/chat">alexsky</a><br>
-                            Version: 1.0.2-beta<br>
-                            Release: 2023-06-04<br>
-                        </span>
-                    </div>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A front end for interacting with a LLM that is accessible via an OpenAI-like API" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <link rel="stylesheet" href="assets/css/googlecode.min.css" />
+    <link rel="stylesheet" href="assets/css/highlightjs-copy.min.css" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16x16.png" />
+    <script src="assets/js/chat.js" defer></script>
+    <script src="assets/js/markdown-it.min.js"></script>
+    <script src="assets/js/highlight.min.js"></script>
+    <script src="assets/js/highlightjs-copy.min.js"></script>
+    <script src="assets/js/jszip.min.js"></script>
+    <script defer src="assets/js/brands.min.js"></script>
+    <script defer src="assets/js/solid.min.js"></script>
+    <script defer src="assets/js/fontawesome.min.js"></script>
+    <script>
+        const user_image = `<img src="assets/img/user.png" alt="User Avatar">`;
+        const gpt_image = `<img src="assets/img/gpt.png" alt="Assistant Avatar">`;
+    </script>
+    <script>window.conversation_id = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(n => n.toString(24).padStart(4, '0')).join('-');</script>
+    <title>LLM Front End</title>
+</head>
+
+<body>
+    <div class="gradient"></div>
+    <div class="row">
+        <div class="box conversations">
+            <div class="top">
+                <button class="new_convo" onclick="new_conversation()">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>New chat</span>
+                </button>
+                <div class="spinner"></div>
+            </div>
+            <div class="bottom_buttons">
+                <button onclick="clear_all_data()">
+                    <i class="fa-solid fa-trash"></i>
+                    <span>Clear All Data</span>
+                </button>
+                <button onclick="export_conversations('JSON')">
+                    <i class="fa-solid fa-code"></i>
+                    <span>Export All Conversations (JSON)</span>
+                </button>
+                <button onclick="export_conversations('HTML')">
+                    <i class="fa-solid fa-file-export"></i>
+                    <span>Export All Conversations (HTML)</span>
+                </button>
+                <button onclick="change_base_api()">
+                    <i class="fa-solid fa-link"></i>
+                    <span>Change Base URL and API Key</span>
+                </button>
+                <div class="info">
+                    <i class="fa-brands fa-github"></i>
+                    <span class="info-title">GitHub: <a href="https://github.com/jjrohal/llm-front-end">LLM Front End</a></span>
                 </div>
             </div>
-            <div class="conversation">
-                <div class="stop_generating stop_generating-hidden">
-                      <button id="cancelButton" onclick="stopAnswer()">
-                        <span>Stop</span>
-                        <i class="fa-regular fa-stop"></i>
-                    </button>
-                </div>
-                <div class="box" id="messages">
-                </div>
-                <div class="user-input">
-                    <div class="box input-box">
-                        <textarea id="message-input" placeholder="Ask me anything..." style="white-space: pre-line;"></textarea>
-                        <div id="send-button">
-                            <i class="fa-regular fa-paper-plane-top"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="buttons">
-                     <div class="field">
-                        <select name="model" id="model">
-			    <option value="gpt-3.5-turbo-16k">Model</option>
-                            <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-                            <option value="gpt-3.5-turbo-0301">gpt-3.5-turbo-0301</option>
-                            <option value="gpt-3.5-turbo-0613">gpt-3.5-turbo-0613</option>
-                            <option value="gpt-3.5-turbo-16k">gpt-3.5-turbo-16k</option>
-			    <option value="gpt-4">gpt-4</option>         
-                            <option value="gpt-4-0314">gpt-4-0314</option>
-			    <option value="gpt-4-32k">gpt-4-32k</option>
-			    <option value="gpt-4-32k-0314">gpt-4-32k-0314</option>
-                        </select>
-                        </div>
-			<div class="field">
-			<select name="temperature" id="temperature">
-			<option value="0.5">T&deg;</option>
-                            <option value="0.0">0.0</option>
-                            <option value="0.1">0.1</option>
-                            <option value="0.2">0.2</option>
-                            <option value="0.3">0.3</option>
-                            <option value="0.4">0.4</option>
-                            <option value="0.5">0.5</option>
-                            <option value="0.6">0.6</option>
-                            <option value="0.7">0.7</option>
-                            <option value="0.8">0.8</option>
-                            <option value="0.9">0.9</option>
-                            <option value="1.0">1.0</option>
-			    <option value="1.1">1.1</option>
-			    <option value="1.2">1.2</option>
-			    <option value="1.3">1.3</option>
-			    <option value="1.4">1.4</option>
-			    <option value="1.5">1.5</option>
-                        </select>
-		      </div>
-                    <div class="field" style="margin-left:15px;">
-                    <label for="toggle-switch" style="justify-content: center;">
-                    <input type="checkbox" id="toggle-switch" name="toggle-switch" onclick="toggleTheme()" style="display: none;">
-                    <i class="fas fa-sun-bright fa-xl" style="color:orange;" id="sun-icon"></i>
-                    <i class="fas fa-moon fa-xl" style="color:lightgray;" id="moon-icon"></i>
-                    </label>
-                   </div>
-                </div>
-            </div>
-        </div> 
-        <div class="mobile-sidebar">
-            <i class="fa-solid fa-bars"></i>
         </div>
-    </body>
+        <div class="conversation">
+            <div class="stop_generating stop_generating-hidden">
+                <button id="cancelButton" onclick="stopAnswer()">
+                    <span>Stop</span>
+                    <i class="fa-solid fa-stop"></i>
+                </button>
+            </div>
+            <div class="systembox" id="system" title="Click to change the optional system message, which provides the LLM with instructions on how to behave">
+                <div class="left">
+                    <i class="fa-solid fa-gear"></i>
+                    <span id="system-message"></span>
+                </div>
+            </div>
+            <div class="user-input hidden" id="system-prompt">
+                <div class="box input-box">
+                    <textarea id="system-input" placeholder="Add an optional system message..." style="white-space: pre-line;" title="Enter your system message here and press Enter or click the save icon to save. Click the X or anywhere else to cancel"></textarea>
+                    <div id="save-system-button">
+                        <i class="fa-solid fa-save"></i>
+                    </div>
+                    <div id="cancel-system-button">
+                        <i class="fa-solid fa-x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="box" id="messages">
+            </div>
+            <div class="user-input">
+                <div class="box input-box">
+                    <textarea id="message-input" placeholder="Ask me anything..." style="white-space: pre-line;" title="Enter your prompt here and press Enter or click the airplane icon to send"></textarea>
+                    <div id="send-button">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="buttons">
+                <div class="field">
+                    <button onclick="clear_conversation_history()" title="Clears the inputs and outputs for the current conversation">
+                        <i class="fa-solid fa-eraser"></i>
+                        <span>&nbsp;Clear current conversation</span>
+                    </button>
+                </div>
+                <div class="field">
+                    <select class="no-connection" name="model" id="model" title="Could not connect to server. Please enter values and retry the connection.">
+                        <option value="NO CONNECTION">FIX BASE URL AND API KEY</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <select name="temperature" id="temperature", title="Temperature determines whether the output is more random (smaller numbers) or more predictable (larger numbers)">
+                        <option value="0.7">T&deg;</option>
+                        <option value="0.0">0.0</option>
+                        <option value="0.1">0.1</option>
+                        <option value="0.2">0.2</option>
+                        <option value="0.3">0.3</option>
+                        <option value="0.4">0.4</option>
+                        <option value="0.5">0.5</option>
+                        <option value="0.6">0.6</option>
+                        <option value="0.7">0.7</option>
+                        <option value="0.8">0.8</option>
+                        <option value="0.9">0.9</option>
+                        <option value="1.0">1.0</option>
+                        <option value="1.1">1.1</option>
+                        <option value="1.2">1.2</option>
+                        <option value="1.3">1.3</option>
+                        <option value="1.4">1.4</option>
+                        <option value="1.5">1.5</option>
+                    </select>
+                </div>
+                <div class="field" style="margin-left:15px;" title="Change the theme from light to dark">
+                    <label for="toggle-switch" style="justify-content: center;">
+                        <input type="checkbox" id="toggle-switch" name="toggle-switch" onclick="toggleTheme()" style="display: none;", title="Change Theme">
+                        <i class="fa-solid fa-sun fa-xl" style="color:orange;" id="sun-icon"></i>
+                        <i class="fa-solid fa-moon fa-xl" style="color:lightgray;" id="moon-icon"></i>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mobile-sidebar">
+        <i class="fa-solid fa-bars"></i>
+    </div>
+    <div id="baseapi-popup" class="popup hidden">
+        <div class="popup-content">
+            <h2>Enter Authentication Details</h2>
+            <div class="form">
+                <div class="form-row">
+                    <label for="base-url">Base URL</label>
+                    <input type="text" id="base-url" placeholder="Enter Base URL">
+                </div>
+                <div class="form-row">
+                    <label for="api-key">API Key</label>
+                    <input type="text" id="api-key" placeholder="Enter API Key">
+                </div>
+                <div class="field">
+                    <button id="save-credentials">Save/Retry Connection</button>
+                    <button id="cancel-credentials">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="baseapi-background-blur" class="background-blur hidden"></div>
+</body>
+
 </html>
